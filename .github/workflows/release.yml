@@ -1,0 +1,54 @@
+name: release
+
+# Human releases: push a tag v<skill_version> after the version bump is merged to main.
+# The automated path (upstream-sync.yml) makes its own releases.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag matches skill_version
+        run: |
+          expected="v$(python3 -I -c 'import json; print(json.load(open("skills/ola-scooter-dev/upstream.json"))["skill_version"])')"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "tag $GITHUB_REF_NAME does not match skill_version ($expected)" >&2
+            exit 1
+          fi
+
+      - name: Validate the skill
+        run: python3 tools/validate_skill.py
+
+      - name: Skip if the release already exists
+        id: existing
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "release $GITHUB_REF_NAME already exists, nothing to do"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package
+        if: steps.existing.outputs.exists == 'false'
+        run: python3 tools/package.py --out dist --notes-out "$RUNNER_TEMP/notes.md"
+
+      - name: Create the GitHub Release
+        if: steps.existing.outputs.exists == 'false'
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/ola-scooter-dev-${GITHUB_REF_NAME#v}.zip" dist/SHA256SUMS \
+            --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md"

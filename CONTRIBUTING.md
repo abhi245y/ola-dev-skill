@@ -18,7 +18,7 @@ skills/ola-scooter-dev/scripts/fetch-upstream.sh      # or pass OLA_SDK_DIR / OL
 python3 tools/sync.py --check
 ```
 
-If `sync.py --check` fails because the pinned commit moved, update `skills/ola-scooter-dev/upstream.json` in its own pull request, with the new commit and a note in the CHANGELOG. Regenerate with `tools/sync.py` in that same pull request.
+Upstream pins move on their own. `.github/workflows/upstream-sync.yml` runs `tools/update_pins.py`, regenerates the references, and releases a patch version, or opens a `needs-review` PR for a breaking change. To move the pins by hand, run `tools/update_pins.py --sdk DIR --can DIR` with checkouts at the new commits, then `tools/sync.py` in the same pull request, with a CHANGELOG note. Bump MINOR or MAJOR versions by hand with `tools/bump_version.py`.
 
 ## Style
 

@@ -87,12 +87,26 @@ def check_theme_template() -> None:
         errors.append(f"{theme}/theme.json: entry file missing")
 
 
+def check_version() -> None:
+    # One version, three places: upstream.json (source), README marker, CHANGELOG heading.
+    version = json.loads((SKILLS / "ola-scooter-dev" / "upstream.json").read_text(encoding="utf-8")).get("skill_version", "")
+    if not re.match(r"^\d+\.\d+\.\d+$", version):
+        errors.append(f"upstream.json: skill_version {version!r} is not X.Y.Z")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    marker = re.search(r"<!-- skill-version -->([^<]*)<!-- /skill-version -->", readme)
+    if not marker or marker.group(1) != version:
+        errors.append(f"README.md: skill-version marker must read {version!r}")
+    if f"## [{version}]" not in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"):
+        errors.append(f"CHANGELOG.md: no entry for {version}")
+
+
 def main() -> int:
     for skill_dir in sorted(p for p in SKILLS.iterdir() if (p / "SKILL.md").exists()):
         check_frontmatter(skill_dir)
     check_links()
     check_json()
     check_theme_template()
+    check_version()
     for line in errors:
         print(line, file=sys.stderr)
     if errors:

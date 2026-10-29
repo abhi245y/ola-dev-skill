@@ -1,5 +1,6 @@
 {
   "skill": "ola-scooter-dev",
+  "skill_version": "0.1.0",
   "pinned_on": "2026-10-30",
   "upstreams": {
     "ola-dash-sdk": {
@@ -15,7 +16,8 @@
       "commit": "7b13d086380cb7bb17be670642e26dd6853ee7ea",
       "license": "MIT",
       "catalog": "catalog/gen1/hvdp-5.0.0.json",
-      "catalog_profile": "gen1-hvdp-5.0.0"
+      "catalog_profile": "gen1-hvdp-5.0.0",
+      "catalog_profiles": ["gen1-hvdp-5.0.0"]
     }
   }
 }

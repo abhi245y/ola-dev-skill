@@ -5,3 +5,5 @@ __pycache__/
 # Upstream checkouts, never committed here
 upstream/
 sim/out/
+# Release output of tools/package.py
+dist/

@@ -1,0 +1,143 @@
+name: upstream-sync
+
+# Keeps the skill in step with the Dash SDK and the CAN reference.
+#  - Compatible upstream change: patch bump, commit to main, tag, GitHub Release.
+#  - Breaking change (contract or plugin API version, or the catalog profile set):
+#    push auto/upstream-<sdk7>-<can7> and open or refresh a PR labelled needs-review.
+# Pushes made with GITHUB_TOKEN do not start other workflows, so the release is made here.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [sdk-updated, can-updated]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the skill
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out ola-dash-sdk at its default branch
+        uses: actions/checkout@v4
+        with:
+          repository: abhi245y/ola-dash-sdk
+          path: upstream/ola-dash-sdk
+          persist-credentials: false
+
+      - name: Check out ola-can-reference at its default branch
+        uses: actions/checkout@v4
+        with:
+          repository: abhi245y/ola-can-reference
+          path: upstream/ola-can-reference
+          persist-credentials: false
+
+      - name: Move the pins to the upstream HEAD
+        id: pins
+        run: |
+          set -eu
+          python3 tools/update_pins.py --sdk upstream/ola-dash-sdk --can upstream/ola-can-reference > "$RUNNER_TEMP/pins.json"
+          cat "$RUNNER_TEMP/pins.json"
+          echo "PINS_JSON=$RUNNER_TEMP/pins.json" >> "$GITHUB_ENV"
+          python3 -I -c 'import json, sys; s = json.load(open(sys.argv[1])); print("changed=" + str(s["changed"]).lower()); print("breaking=" + str(s["breaking"]).lower())' "$RUNNER_TEMP/pins.json" >> "$GITHUB_OUTPUT"
+
+      - name: Regenerate the references and check them
+        if: steps.pins.outputs.changed == 'true'
+        run: |
+          python3 tools/sync.py --sdk upstream/ola-dash-sdk --can upstream/ola-can-reference
+          python3 tools/sync.py --check --sdk upstream/ola-dash-sdk --can upstream/ola-can-reference
+
+      - name: Validate the skill
+        if: steps.pins.outputs.changed == 'true'
+        run: python3 tools/validate_skill.py
+
+      - name: Git identity
+        if: steps.pins.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Breaking change, open or refresh the review PR
+        if: steps.pins.outputs.changed == 'true' && steps.pins.outputs.breaking == 'true'
+        run: |
+          set -eu
+          SDK7=$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["sdk"]["new"][:7])' "$PINS_JSON")
+          CAN7=$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["can"]["new"][:7])' "$PINS_JSON")
+          BRANCH="auto/upstream-$SDK7-$CAN7"
+          TITLE="Review upstream SDK $SDK7 / CAN $CAN7 (breaking)"
+
+          git checkout -B "$BRANCH"
+          git add skills/ola-scooter-dev/upstream.json skills/ola-scooter-dev/references
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(upstream): review SDK $SDK7 / CAN $CAN7"
+          fi
+          git push --force origin "HEAD:refs/heads/$BRANCH"
+
+          python3 -I - "$PINS_JSON" > "$RUNNER_TEMP/pr-body.md" <<'PY'
+          import json, sys
+          s = json.load(open(sys.argv[1]))
+          rows = [
+              ("Dash SDK commit", s["sdk"]["old"], s["sdk"]["new"]),
+              ("CAN reference commit", s["can"]["old"], s["can"]["new"]),
+              ("Theme contract", "v%s" % s["contract"]["old"], "v%s" % s["contract"]["new"]),
+              ("Plugin API", "v%s" % s["plugin_api"]["old"], "v%s" % s["plugin_api"]["new"]),
+              ("Catalog profiles", ", ".join(s["catalog_profiles"]["old"]), ", ".join(s["catalog_profiles"]["new"])),
+          ]
+          print("An upstream change may break the skill. Review it before any release.")
+          print()
+          print("| Pin | Old | New |")
+          print("|---|---|---|")
+          for name, old, new in rows:
+              print("| %s | `%s` | `%s` |" % (name, old, new))
+          print()
+          print("The references were regenerated and validated on this branch.")
+          print("After merging, bump the version by hand: `tools/bump_version.py minor` (or `major`).")
+          PY
+
+          gh label create needs-review --color FBCA04 --description "Upstream change needs a human review" --force
+          PR=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$PR" ]; then
+            gh pr edit "$PR" --title "$TITLE" --body-file "$RUNNER_TEMP/pr-body.md" --add-label needs-review
+          else
+            gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr-body.md" --label needs-review
+          fi
+
+      - name: Compatible change, bump, commit, tag and push
+        if: steps.pins.outputs.changed == 'true' && steps.pins.outputs.breaking != 'true'
+        run: |
+          set -eu
+          SDK7=$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["sdk"]["new"][:7])' "$PINS_JSON")
+          CAN7=$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["can"]["new"][:7])' "$PINS_JSON")
+          VERSION=$(python3 tools/bump_version.py patch --summary "$PINS_JSON")
+          python3 tools/validate_skill.py
+
+          git add skills/ola-scooter-dev/upstream.json skills/ola-scooter-dev/references README.md CHANGELOG.md
+          git commit -m "chore(upstream): sync SDK $SDK7 / CAN $CAN7"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "HEAD:refs/heads/main"
+          git push origin "v$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Package and create the GitHub Release
+        if: steps.pins.outputs.changed == 'true' && steps.pins.outputs.breaking != 'true'
+        run: |
+          set -eu
+          python3 tools/package.py --out dist --notes-out "$RUNNER_TEMP/notes.md"
+          gh release create "v$VERSION" \
+            "dist/ola-scooter-dev-$VERSION.zip" dist/SHA256SUMS \
+            --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
