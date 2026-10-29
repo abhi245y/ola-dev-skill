@@ -1,0 +1,7 @@
+# Scratch and cache folders (the fetch script and sync write into tmp/ when asked)
+tmp/
+__pycache__/
+*.pyc
+# Upstream checkouts, never committed here
+upstream/
+sim/out/

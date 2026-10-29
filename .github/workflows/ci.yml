@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Skill, links, JSON, theme manifest
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate SKILL.md frontmatter, links, JSON and theme template
+        run: python3 tools/validate_skill.py
+
+  upstream-sync:
+    name: Generated references match pinned upstream
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pins from upstream.json
+        id: pins
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          pins = json.load(open("skills/ola-scooter-dev/upstream.json", encoding="utf-8"))["upstreams"]
+          print(f"sdk_commit={pins['ola-dash-sdk']['commit']}")
+          print(f"can_commit={pins['ola-can-reference']['commit']}")
+          PY
+
+      - name: Check out ola-dash-sdk at the pinned commit
+        uses: actions/checkout@v4
+        with:
+          repository: abhi245y/ola-dash-sdk
+          ref: ${{ steps.pins.outputs.sdk_commit }}
+          path: upstream/ola-dash-sdk
+
+      - name: Check out ola-can-reference at the pinned commit
+        uses: actions/checkout@v4
+        with:
+          repository: abhi245y/ola-can-reference
+          ref: ${{ steps.pins.outputs.can_commit }}
+          path: upstream/ola-can-reference
+
+      - name: Check generated references
+        run: python3 tools/sync.py --check --sdk upstream/ola-dash-sdk --can upstream/ola-can-reference

@@ -1,0 +1,93 @@
+// Starter theme for the Ola Dash SDK (MIT, written from scratch).
+// Compiles against theme contract v5. Copy contract/vehicle.slint next to this file,
+// or pass the contract directory with -I. Display-only: no vehicle commands.
+import { Vehicle, Battery, Media, Actions, DriveMode, VehicleState } from "vehicle.slint";
+
+export { Vehicle, Battery, Media, Actions, DriveMode, VehicleState }
+
+// Mode name shown as text, so the colour is never the only signal.
+component ModeLabel inherits Text {
+    in property <DriveMode> mode;
+    text: mode == DriveMode.eco ? "ECO"
+        : mode == DriveMode.normal ? "NORMAL"
+        : mode == DriveMode.sport ? "SPORT"
+        : mode == DriveMode.hyper ? "HYPER"
+        : mode == DriveMode.custom ? "CUSTOM"
+        : mode == DriveMode.park ? "PARK"
+        : mode == DriveMode.reverse ? "REVERSE"
+        : mode == DriveMode.easy-park ? "EASY PARK"
+        : "--";
+    font-size: 28px;
+    font-weight: 600;
+    color: #9ba6b6;
+}
+
+export component Dash inherits Window {
+    width: 1280px;
+    height: 768px;
+    background: #05070b;
+
+    // The top 48 px belong to the host telltale bar. Keep this strip empty.
+
+    // Speed: the hero number. Shows -- until the vehicle reports speed.
+    Text {
+        x: 0px;
+        y: 170px;
+        width: 1280px;
+        horizontal-alignment: center;
+        text: Vehicle.speed-kmh < 0.5 ? "0" : "\{round(Vehicle.speed-kmh)}";
+        font-size: 260px;
+        font-weight: 700;
+        color: #f4f6fa;
+    }
+
+    Text {
+        x: 0px;
+        y: 470px;
+        width: 1280px;
+        horizontal-alignment: center;
+        text: "km/h";
+        font-size: 36px;
+        color: #9ba6b6;
+    }
+
+    // Battery: fine SOC when reported, otherwise the rounded value, otherwise --.
+    Text {
+        x: 60px;
+        y: 620px;
+        text: Battery.soc-pct >= 0 ? "\{round(Battery.soc-pct)} %"
+            : Vehicle.battery-pct >= 0 ? "\{Vehicle.battery-pct} %"
+            : "-- %";
+        font-size: 48px;
+        font-weight: 600;
+        color: #f4f6fa;
+    }
+
+    // Range: -1 means not reported yet.
+    Text {
+        x: 60px;
+        y: 690px;
+        text: Vehicle.range-km >= 0 ? "\{Vehicle.range-km} km range" : "-- km range";
+        font-size: 26px;
+        color: #9ba6b6;
+    }
+
+    // Mode, and whether the vehicle is ready to ride.
+    ModeLabel {
+        x: 900px;
+        y: 620px;
+        width: 320px;
+        horizontal-alignment: right;
+        mode: Vehicle.mode;
+    }
+
+    Text {
+        x: 900px;
+        y: 670px;
+        width: 320px;
+        horizontal-alignment: right;
+        text: Vehicle.state == VehicleState.drive ? "READY" : "";
+        font-size: 24px;
+        color: #2ee6a6;
+    }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "starter",
+  "name": "Starter",
+  "version": "0.1.0",
+  "author": "Ola Dev Skill contributors",
+  "license": "MIT",
+  "contract": 5,
+  "entry": "main.slint",
+  "description": "Plain starter theme: speed, battery, range and mode, using contract v5."
+}
