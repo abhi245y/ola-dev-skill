@@ -2,7 +2,7 @@
 
 An [Agent Skill](https://agentskills.io) that teaches an AI coding agent to build apps, themes, widget plugins, and read-only analysis tools for the **Ola S1 Pro Gen 1** electric scooter dash. It works with Claude Code, OpenAI Codex, Gemini CLI, Cursor, and any agent that can read a folder of instructions.
 
-Skill version: <!-- skill-version -->0.2.1<!-- /skill-version -->. See [CHANGELOG.md](CHANGELOG.md).
+Skill version: <!-- skill-version -->0.2.2<!-- /skill-version -->. See [CHANGELOG.md](CHANGELOG.md).
 
 It packages what two public projects have learned:
 

@@ -66,7 +66,7 @@ Full rationale: `references/safety.md`.
 - **Enum order is the wire.** Never reorder enum constants. The contract is additive only.
 - **Plugin limits.** Four widgets per plugin, six shown in total. Strings are cut at fixed lengths. See `references/plugins.md`.
 - **Plugin host is implemented** at the pinned SDK commit (`docs/plugins.md`, `CHANGELOG.md` Unreleased, `PluginHost.java`). It is still 0.1 experimental and owner-enabled only.
-- **The trunk key is gated by the host, not by the theme.** Reference themes enable their key at `speed-kmh < 1`, but the host refuses any non-zero integer speed. A key that looks enabled can still do nothing. The host logs `trunk request: refused <reason>`. See `references/safety.md`.
+- **The trunk key is gated by the host, not by the theme.** Reference themes enable their key with the host's own conditions (`state == park`, `speed-kmh == 0`, trunk closed), but the host checks again and the latch state can be unknown, so an enabled-looking key can still be refused. The host logs `trunk request: refused <reason>`. See `references/safety.md`.
 - **`trunk-open` is read-only.** It is true while the seat latch is open. It closes when the seat is pressed down. A theme cannot close it.
 - **Lock-screen and overlay styling are data only.** `lock-style` and the overlay properties carry colours and placement. The host keeps the keypad, every key press, all copy, and every warning.
 

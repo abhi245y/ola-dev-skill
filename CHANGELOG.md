@@ -4,6 +4,12 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-30
+
+### Changed
+
+- Trunk key guidance: reference themes now gate at `speed-kmh == 0`, matching the host gate (SDK fix); removed the stale mismatch warning.
+
 ## [0.2.1] - 2026-10-30
 
 ### Changed

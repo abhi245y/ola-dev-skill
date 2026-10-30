@@ -124,7 +124,7 @@ export component Dash inherits Window {
 
 `Media.play-pause()`, `Media.next()`, `Media.previous()`, `Actions.open-android-auto()`, `Actions.open-settings()`, `Actions.open-trunk()` (v6, host-gated, see `safety.md` rule 4), and `Plugins.widget-clicked(id)`. Nothing else. Never add a callback that can change vehicle state.
 
-**Trunk key pattern.** Show the key as enabled only when the host could accept it: parked, stopped, and `Vehicle.trunk-open` false. Gate the `TouchArea` on that same condition. The host checks again (unlocked, Park, integer speed 0, latch known closed, 3 s between requests), and the theme gets no result, so show nothing that suggests the trunk is opening. The reference themes gate at `Vehicle.speed-kmh < 1`, which is looser than the host's integer-zero rule (see upstream findings). For a new theme, use the stricter check and mark it unverified against the host's int conversion. Do not add retries.
+**Trunk key pattern.** Show the key as enabled only when the host could accept it: parked, stopped, and `Vehicle.trunk-open` false. Gate the `TouchArea` on that same condition. The host checks again (unlocked, Park, integer speed 0, latch known closed, 3 s between requests), and the theme gets no result, so show nothing that suggests the trunk is opening. The reference themes gate on `Vehicle.state == VehicleState.park && Vehicle.speed-kmh == 0 && !Vehicle.trunk-open`, matching the host; copy that condition. Do not add retries.
 
 ## Fonts
 
