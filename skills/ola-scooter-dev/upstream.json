@@ -13,7 +13,7 @@
     },
     "ola-can-reference": {
       "url": "https://github.com/abhi245y/ola-can-reference.git",
-      "commit": "f126904397bc876c3ad92a6dbcbc862bc4594787",
+      "commit": "b73acee3b9d63f63e4d3303623ebd83b805806c7",
       "license": "MIT",
       "catalog": "catalog/gen1/hvdp-5.0.0.json",
       "catalog_profile": "gen1-hvdp-5.0.0",
