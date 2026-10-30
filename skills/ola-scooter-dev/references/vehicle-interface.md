@@ -31,6 +31,7 @@ Names are exact. They are load-bearing. Units are as the callback states them. A
 | Odometer | `IDisplayInfoCallbacks.onOdoValueChangedInMeters` | long, m | Cumulative odometer. Not a trip meter |
 | State | `IVehicleModeCallbacks.onVehicleStateChanged` | `VehicleStates` | Sleep, idle, park, drive, and others. Ride log shows SLEEP, VEHICLE_IDLE, PARK, DRIVE |
 | Lock | `IVehicleModeCallbacks.onVehicleLockStateBCMChanged` | `VehicleLockStateBCM` | Lock feedback, not a ride-ready signal |
+| Trunk | `IDisplayInfoCallbacks.isTrunkLock` | boolean (parameter named `locked`) | Host maps it to contract `trunk-open` as `!locked`, so `true` means latched. SPEC.md does not state the meaning. *Polarity unverified on a scooter.* The host reads it only for the trunk gate and the trunk-open property |
 | Modes | `IVehicleInfoCallbacks.onDriveModeChanged` | `DriveModes` | Drive mode |
 | Modes | `IMotorInfoCallbacks.onVehicleDischargeModeChanged` | `DriveModes` | Discharge mode. Ride log shows it matches the mode in use |
 | Modes | `IVehicleModeCallbacks.onVehicleModeLevel4Changed` | `DriveModes` | Level-4 mode. Reverse and park assist appear here |

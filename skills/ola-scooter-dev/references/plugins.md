@@ -2,7 +2,7 @@
 
 A plugin is an ordinary Android APK. It publishes data into named slots. The host shows that data through its own screens and the theme contract. Plugins are display-only: no method in the API can command the vehicle.
 
-**Status.** The SDK's `docs/plugins.md` and `CHANGELOG.md` (Unreleased) say the host implements API v1. Other SDK docs, including `contract/vehicle.slint` comments, say the host implementation is in progress. Check the pinned commit's `host/java/dev/olatool/dash/plugin/PluginHost.java` before you rely on either claim.
+**Status.** Implemented in the host at the pinned SDK commit, 0.1 experimental. `docs/plugins.md`, the SDK `CHANGELOG.md` (Unreleased), and `host/java/dev/olatool/dash/plugin/PluginHost.java` agree. The host binds only owner-enabled plugins. The enablement UI is still on the upstream roadmap.
 
 ## Declaring a plugin
 
@@ -91,7 +91,7 @@ Themes see a widget's `id` as `<package>|<plugin id>`. Treat it as opaque and pa
 
 ## Guarantees and what you may not do
 
-- No method sends a vehicle command.
+- No method sends a vehicle command. Plugins have no path to `Actions.open-trunk()` or any other request. That one request is theme-only and host-gated.
 - No plugin can hide or cover the safety overlay.
 - Nothing binds without owner enablement.
 - Do not add a method that commands the vehicle. Do not request slot access the owner did not grant.

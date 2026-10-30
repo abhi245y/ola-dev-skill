@@ -20,17 +20,41 @@ Unlock code must call the stock profile service with the owner's existing passco
 
 *Why:* the attempt limit and cooldown are the protection against guessing.
 
-## 4. Display-only themes and plugins
+## 4. Display-only themes and plugins, with one host-gated request
 
-Themes and plugins are display-only. Do not add any vehicle-command method to the plugin API or to a theme. The only callbacks themes may use are `Media.play-pause`, `Media.next`, `Media.previous`, `Actions.open-android-auto`, `Actions.open-settings`, and `Plugins.widget-clicked`. A plugin may hear `onAction` only for its own widgets and for media.
+Themes and plugins are display-only. The only callbacks themes may use are `Media.play-pause`, `Media.next`, `Media.previous`, `Actions.open-android-auto`, `Actions.open-settings`, `Actions.open-trunk`, and `Plugins.widget-clicked`. A plugin may hear `onAction` only for its own widgets and for media. Plugins have no method that reaches the vehicle.
 
-*Why:* a theme that can command the vehicle turns a display bug into a control bug.
+`Actions.open-trunk()` is the one vehicle request a theme can make. It is defined by the contract (`contract/vehicle.slint`, v6) and gated by the host. The host sends the stock seat command (`Seat_Unlock_Cmd`) once, and only when all of these hold, using real values and never test data:
+
+| Guard | Source |
+|---|---|
+| Scooter unlocked | Real BCM lock callback |
+| Vehicle state `park` | Real vehicle-state callback |
+| Speed 0 km/h | Real integer speed; unknown is refused |
+| Trunk latch known closed | Real `isTrunkLock` callback; unknown is refused |
+| Not in test mode | Test values never reach the gate |
+| Parser connected | Binder present |
+| No repeat within 3 s | Time since the last request that was sent |
+
+Each attempt is logged as `trunk request: sent` or `trunk request: refused <reason>`. The host does not retry and does not wait for an acknowledgement. A lost command means the trunk stays shut, and the rider uses the stock control. The gate is `host/java/dev/olatool/dash/TrunkGate.java`, tested by `host/test/TrunkGateTest.java` (upstream, at the pinned commit).
+
+Rules for agents:
+
+- Do not add any other vehicle-command method to the contract, a theme, or a plugin.
+- Do not bypass, loosen, or re-time the gate. Do not send `Seat_Unlock_Cmd` or any other command from theme or plugin code.
+- A theme must not show the trunk key as enabled when the host will refuse it. Stricter is fine; looser is not.
+
+*Why:* a theme that can command the vehicle turns a display bug into a control bug. One request, behind a gate the owner can read, is the smallest exception that the SDK's design allows.
 
 ## 5. The safety overlay stays visible
 
-Telltales, alerts, and the unlock screen belong to the host and are painted above every theme. No theme or plugin may hide, move, cover, shrink, or reorder them. Keep the top 48 px empty; the host's telltale bar lives there.
+Telltales, alerts, and the unlock screen belong to the host and are painted above every theme. No theme or plugin may hide, cover, shrink, or obscure them, and none may drop a telltale.
 
-If a change would hide or obscure the overlay, stop and report it. The SDK treats that as a critical bug.
+Contract v6 lets a theme choose the strip's placement (`overlay-placement`), telltale order, strip style, and alert position. The host enforces everything else: the strip is always drawn, telltales stay on it, minimum icon and text sizes apply, contrast below 4.5:1 falls back to host colours, and placement is clamped to the screen. The lock screen is styled, not handled: a theme may set `lock-style` (colours, key shape, digit drawing) and nothing about the keypad's keys, labels, or logic.
+
+A theme must keep the reserved strip for its declared placement plain (top or bottom 48 px, or left or right 72 px). See `themes.md`.
+
+If a change would hide or obscure the overlay, or lets a theme or plugin reach the keypad, stop and report it. The SDK treats that as a critical bug.
 
 ## 6. Raw CAN is read-only by default
 

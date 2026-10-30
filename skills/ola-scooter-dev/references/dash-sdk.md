@@ -8,13 +8,15 @@ Source: `ola-dash-sdk` at the pinned commit (see `upstream.json`). It is GPL-3.0
 Ola vehicle-parser service (stock)
    | AIDL callbacks (clean-room interface, sdk/vehicle-interface)
    v
-VehicleBridge.java      keep-alive, session logs, debug test channel
+VehicleBridge.java      keep-alive, session logs, debug test channel,
+                        trunk request (gated by TrunkGate.java)
    | JNI
    v
 Rust host (liboladash.so, Slint runtime)
    |- theme loader        themes/<id>/main.slint, loaded at runtime
    |- contract globals    Vehicle, Battery, Ride, Media, Navigation, Plugins, Actions
-   |- safety overlay      host/ui/overlay.slint, painted above every theme
+   |- safety overlay      host/ui/overlay.slint (+ src/theme_root.rs), painted above every theme
+   |- lock screen         host-drawn keypad; the theme supplies only lock-style
    '- plugin data         JSON snapshot from PluginHost
         ^ AIDL IDashPlugin / IDashHost
    plugin APKs (display-only, owner-enabled)
@@ -35,7 +37,7 @@ Rust host (liboladash.so, Slint runtime)
 | `sdk/plugin-api/aidl/` | Plugin API v1 (AIDL) |
 | `sdk/vehicle-interface/` | Clean-room parser interface and `SPEC.md` |
 | `plugins/example-sysinfo/` | Example plugin (GPL). Read it for shape, do not copy |
-| `themes/default`, `themes/minimal` | Bundled themes |
+| `themes/default`, `segment`, `fields`, `minimal` | Bundled themes (three reference themes, one minimal) |
 | `sim/` | Desktop runner with mock data |
 | `tools/check-themes.sh` | Validate every theme |
 
@@ -73,9 +75,11 @@ cargo run --release --manifest-path sim/Cargo.toml -- themes/default --screensho
 tools/check-themes.sh
 ```
 
-- The sim loop is 120 s. From 0 to 60 s the mock vehicle rides, cycling eco, normal, sport, and hyper every 15 s, and the battery falls from 100 to 60. From 60 to 120 s it charges. Useful times: 5, 20, 50, and 75 s.
+- The default `sim` run (`--state ride`) is a mock loop. It rides with indicators, cycles the drive mode every 12 s (eco, normal, sport, hyper, custom), shows a side-stand card at 100 to 110 s of each 120 s cycle, then charges.
+- Hold one state with `--state ride|park|charge|reverse|trunk|easy-park`, or the lock screen with `--state locked|locked-error|cooldown`. Hold one alert with `--alert 1..6`, and preview placement with `--placement top|bottom|left|right`.
 - `sim` looks for the contract at `<theme>/../../contract`. Override with `--contract <dir>`.
-- `SIM_PLUGINS=1` adds mock plugin widgets and a navigation card.
+- `--plugins` feeds mock plugin widgets and `--nav` feeds a navigation card. `SIM_PLUGINS=1` is the older spelling of both.
+- Full list: `themes.md`, "Previewing".
 
 ## Logs
 
@@ -90,11 +94,12 @@ On the device, session logs live in the app's external files directory:
 - Pull without root: `adb pull /sdcard/Android/data/dev.olatool.dash/files/logs ./logs`. Pull into a git-ignored folder such as `tmp/`.
 - The folder is capped at 1 GiB. The oldest files go first.
 - Test-channel events are prefixed `TEST`.
+- Trunk requests are logged as `trunk request: sent` or `trunk request: refused <reason>`.
 - Logs contain vehicle identifiers and state history. Redact before sharing.
 
 ## Test channel (debug builds only)
 
-`host/test/inject.sh <cb> <method> [args]` runs one parser callback as if the vehicle had sent it. `inject.sh off` ends test mode and replays the real parser state. Test mode shows a TEST DATA banner, disables the real keypad submission, and never sends commands or changes unlock state. It needs a root or DUMP-permitted shell.
+`host/test/inject.sh <target> <callback method> [args]` runs one parser callback as if the vehicle had sent it. Targets are `display`, `motor`, `modes`, `alerts`, `info`, `commands`, `battery`, `charger`, and `handlebar`. Method names are the parser callback names in `sdk/vehicle-interface/SPEC.md`. `inject.sh off` ends test mode and replays the real parser state. Test mode shows a TEST DATA banner, disables the real keypad submission, and never sends commands or changes unlock state. It needs a root or DUMP-permitted shell.
 
 Never ship the test channel in a release. Never use it to fake a real vehicle state for a user.
 

@@ -4,6 +4,14 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Changed
+
+- Review for SDK contract v6. Pins: Dash SDK `7e3f339` -> `65e2ba8` (contract v5 -> v6, plugin API v1 unchanged) and CAN reference `f126904` -> `b73acee` (README and disclaimer only, catalog unchanged).
+- `ola-scooter-dev` hard rules updated. Rule 4: themes and plugins are display-only, except the one host-gated `Actions.open-trunk()` request. Rule 5: the overlay is never hidden or covered, and a theme may choose its placement, telltale order, style and alert position, plus the lock-screen style. The fixed "top 48 px" rule is replaced by per-placement reserved strips.
+- References now cover the v6 overlay properties, `lock-style`, the trunk request guards and log lines, the sim options, and the test-channel targets. The plugin host is described as implemented (0.1, experimental).
+- Platform facts cite the SDK's measured hardware note (one scooter), replacing the "reported, not verified" section.
+- Starter theme compiles against contract v6 and declares `contract: 5`. It has a commented `overlay-placement` example.
+
 ## [0.1.1] - 2026-10-30
 
 ### Changed
