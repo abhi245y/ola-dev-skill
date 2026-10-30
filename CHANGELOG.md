@@ -4,6 +4,12 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-30
+
+### Changed
+
+- Dash SDK pin `65e2ba8` -> `b453daf`.
+
 ## [0.2.0] - 2026-10-30
 
 ### Changed
