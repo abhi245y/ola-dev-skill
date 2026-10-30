@@ -4,6 +4,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-30
+
 ### Changed
 
 - Review for SDK contract v6. Pins: Dash SDK `7e3f339` -> `65e2ba8` (contract v5 -> v6, plugin API v1 unchanged) and CAN reference `f126904` -> `b73acee` (README and disclaimer only, catalog unchanged).
