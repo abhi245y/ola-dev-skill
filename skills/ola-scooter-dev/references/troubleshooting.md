@@ -7,6 +7,9 @@ Each entry gives the symptom, the cause, and the fix. Entries marked *unverified
 - **The theme shows nothing, or the host falls back to the default theme.** The theme failed to compile. Check the logcat tag `OlaDash` for the diagnostic. Then run `sim --check themes/<id>` to reproduce it on the desktop.
 - **`sim` shows no values.** The entry file does not re-export the globals. Add `export { Vehicle, Media, Actions, DriveMode }` (plus any others you use).
 - **The host rejects a theme.** Check `theme.json`: `id` must equal the folder name, `contract` must not exceed the host's contract version, and `entry` must be a relative path inside the folder with no `..`.
+- **Overlay or lock colours are not the ones I set.** The host checks contrast (4.5:1 for the strip and keypad text, 3:1 for accents) and falls back to its own colours. It logs the rejection under `OlaDash`. `sim` prints it to stderr. Pick colours that pass.
+- **Telltales are in the wrong place.** Check `overlay-placement` in the theme and the `--placement` you previewed with. The host clamps placement to the screen, and it does not let a theme hide the strip.
+- **The trunk key does nothing.** That is expected when a host guard refuses. Check the calls log for `trunk request: refused <reason>` (the reasons in `TrunkGate.refusal` are `test mode`, `repeat within 3 s`, `no commander`, `scooter not unlocked`, `not in park`, `speed not reported`, `moving`, `trunk state not reported`, and `already open`). A theme cannot override the gate. Do not add a retry loop.
 - **Path shape is squashed or offset.** `Path` scales to its bounding box. Set `viewbox-width` and `viewbox-height` to the element's size.
 - **A rotated element does not rotate.** `transform-rotation` is ignored by the renderer. Build the shape with rotated coordinates.
 - **A glow or shadow is missing.** `drop-shadow-*` is not drawn. Use a radial gradient or a wide translucent stroke.

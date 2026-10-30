@@ -27,9 +27,14 @@ Scope: S1 Pro Gen 1 only. Gen 2 and other models are unknown. Everything here is
 - `adb` reaches the head unit over the link. The SDK docs use plain `adb` commands and do not describe the network path. A related public RE project notes that adb may use the head unit's IPv6 link-local address with a scope ID. That note is not verified in the two source repos. Look up your own setup. Do not hard-code an address, and do not share one.
 - If `adb` shows `offline`, reconnect the device (see `troubleshooting.md`).
 
-## Reported, not verified here
+## Measured hardware (one scooter, from upstream)
 
-- The SoC is reported as Qualcomm SDM450 and RAM as about 2.9 GB. Neither figure appears in the two source repos. Check on the device (`getprop ro.board.platform`, `/proc/meminfo`) before you rely on either.
+Upstream `docs/architecture.md` (pinned commit) states these as measured on one S1 Pro Gen 1. They are one device, so treat them as the known Gen 1 baseline, not a spec for every unit. Check your own unit with `getprop ro.board.platform` and `/proc/meminfo` if it matters.
+
+- Android 10 (API 29), Qualcomm SDM450 (msm8953 family, arm64), Adreno 506 GPU (GLES 3.2).
+- 2.9 GB RAM. 1280 x 768 display at density 236. The host forces a 1.0 scale factor, so themes use panel pixels.
+- Multitouch. Wi-Fi with Wi-Fi Direct, Bluetooth and BLE, GPS, and a cellular modem. No Google services.
+- Other generations are unknown.
 
 ## Unknown or unverified
 

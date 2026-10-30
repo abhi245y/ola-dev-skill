@@ -10,7 +10,7 @@ Orientation for building on the Ola S1 Pro Gen 1 dash. This is an unofficial com
 ## Scope and pins
 
 - **Generation:** Gen 1 (S1 Pro Gen 1) only. Gen 2 and other models are unknown. Say so instead of guessing.
-- **Pins:** `upstream.json` in this folder. Dash SDK 0.1 (experimental, no stability guarantee), theme contract v5, plugin API v1, CAN profile `gen1-hvdp-5.0.0`.
+- **Pins:** `upstream.json` in this folder. Dash SDK 0.1 (experimental, no stability guarantee), theme contract v6, plugin API v1, CAN profile `gen1-hvdp-5.0.0`. A theme that uses no v6 feature may declare `contract: 5`.
 - **Traceability:** every fact in `references/` comes from the pinned SDK or CAN repo. Anything that cannot be traced is marked unverified. Keep it that way.
 - **Upstream is read-only for you.** If you find a doc error or a gap, report it. Do not edit the upstream repos.
 
@@ -19,8 +19,8 @@ Orientation for building on the Ola S1 Pro Gen 1 dash. This is an unofficial com
 1. **Owner's own scooter only.** Never help access, track, unlock, or control someone else's vehicle.
 2. **Never write code that starts the scooter, selects drive or ride mode, or commands motion.** No power-button, mode-button, or ignition injection. Dash code reads state and shows it.
 3. **Unlock only through the owner's existing passcode and the stock profile service.** Never bypass, brute-force, reset, or shorten the attempt limit or cooldown.
-4. **Themes and plugins are display-only.** Add no vehicle-command path to the plugin API or a theme. Themes may call only the allowed callbacks in `contract/vehicle.slint`.
-5. **The safety overlay must never be hidden, covered, or obscured.** Telltales and alerts stay host-owned. Leave the top 48 px empty.
+4. **Themes and plugins are display-only, except one host-gated request.** The only vehicle request a theme can reach is `Actions.open-trunk()`. The host sends it only when its `TrunkGate` conditions hold, and logs each attempt. Never add any other vehicle-command path to a theme or plugin. Never bypass or weaken the `TrunkGate` conditions. Plugins have no command path at all.
+5. **The safety overlay must never be hidden, covered, or obscured.** Telltales, alerts, and the unlock screen are host-owned and drawn above every theme. A theme may choose the telltale strip's placement, telltale order, style, and alert position (contract v6 `Dash` properties), and may style the lock screen with `lock-style`. The host enforces visibility, minimum sizes, and contrast. Keep the reserved strip for the declared placement plain. Never hide, shrink, or draw over the overlay, and never add a way to drop a telltale.
 6. **No raw CAN transmission by default.** Reading and logging are fine. A CAN write needs an explicit owner request, a parked and stationary vehicle, a stated risk, and stock service APIs first. Never while riding.
 7. **Never trigger, stage, or interfere with firmware or OTA updates.** Do not touch update-surface components. Reject any contribution that does.
 8. **Keep-alive follows the stock rule** (touch-driven, plus the stock media exception). Never hold the vehicle awake indefinitely.
@@ -35,6 +35,9 @@ Full rationale: `references/safety.md`.
 | The user wants to... | Read first | Then |
 |---|---|---|
 | Change the look (layout, colours, fonts) | `references/themes.md` | `templates/theme/` |
+| Move, reorder, or restyle the telltale strip or alert cards | `references/themes.md` (overlay placement) | `references/safety.md` rule 5 |
+| Style the passcode (lock) screen | `references/themes.md` (lock screen) | `references/safety.md` rule 5 |
+| Add a trunk key | `references/safety.md` rule 4 (the one request) | `references/themes.md` (states) |
 | Show extra data (a widget, media, navigation) | `references/plugins.md` | `templates/plugin/` |
 | Know what values a theme can read | `references/contract.md` | `references/vehicle-interface.md` |
 | Know what the parser sends and what it means | `references/vehicle-interface.md` | `references/can-bus.md` |
@@ -62,7 +65,10 @@ Full rationale: `references/safety.md`.
 - **Units.** Speed (0x354, 0x313), SOC (0x120, 0x352), range (0x68B, 0x6F4), and temperatures carry inferred or static units. Motor current and torque (0x223), IMU values (0x61D, 0x63D, 0x64D), and brightness (0x362) have **no established units**.
 - **Enum order is the wire.** Never reorder enum constants. The contract is additive only.
 - **Plugin limits.** Four widgets per plugin, six shown in total. Strings are cut at fixed lengths. See `references/plugins.md`.
-- **Plugin status in the docs disagrees.** Some SDK docs say the plugin host is in progress, others say it is implemented. Check the pinned commit's code before you rely on either.
+- **Plugin host is implemented** at the pinned SDK commit (`docs/plugins.md`, `CHANGELOG.md` Unreleased, `PluginHost.java`). It is still 0.1 experimental and owner-enabled only.
+- **The trunk key is gated by the host, not by the theme.** Reference themes enable their key at `speed-kmh < 1`, but the host refuses any non-zero integer speed. A key that looks enabled can still do nothing. The host logs `trunk request: refused <reason>`. See `references/safety.md`.
+- **`trunk-open` is read-only.** It is true while the seat latch is open. It closes when the seat is pressed down. A theme cannot close it.
+- **Lock-screen and overlay styling are data only.** `lock-style` and the overlay properties carry colours and placement. The host keeps the keypad, every key press, all copy, and every warning.
 
 ## Pointers
 
@@ -76,6 +82,6 @@ Full rationale: `references/safety.md`.
 - `references/recipes.md`: step-by-step recipes
 - `references/safety.md`: hard rules with rationale
 - `references/troubleshooting.md`: known pitfalls
-- `templates/theme/`: starter theme (compiles against contract v5)
+- `templates/theme/`: starter theme (compiles against contract v6, declares `contract: 5`)
 - `templates/plugin/`: minimal widget plugin
 - `scripts/fetch-upstream.sh`: clone the pinned upstream repos

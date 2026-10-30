@@ -6,7 +6,7 @@ Each recipe is short. Stop and ask the owner at any step that touches a rule in 
 
 1. `scripts/fetch-upstream.sh` so the contract and the bundled themes are on disk.
 2. Copy `templates/theme/` to `themes/<id>/` in your own folder. Set `id` in `theme.json` to the folder name.
-3. Keep `export component Dash inherits Window`, the 1280 x 768 size, and the top 48 px empty.
+3. Keep `export component Dash inherits Window`, the 1280 x 768 size, and the reserved strip for your overlay placement plain (top or bottom 48 px, or left or right 72 px; default top).
 4. Use only the contract's read-only values and the allowed callbacks (`themes.md`).
 5. Compile and check: `tools/check-themes.sh themes/<id>` in the SDK, or `sim --check`.
 6. Render: `sim themes/<id> --screenshot out-20.png --at 20`, and at 50 and 75 s. Look at the PNGs.
@@ -64,6 +64,27 @@ The contract is additive only. Follow the SDK's `CONTRIBUTING.md` upstream. In o
 3. Keep it passive: a capture, not a transmit test.
 4. Redact, then open the issue or pull request in the CAN repo. Do not commit to it from this skill.
 
-## 8. Report the outcome
+## 8. Style the safety overlay or the lock screen
+
+1. Read `themes.md` (overlay placement, lock screen) and `safety.md` rule 5.
+2. Declare only what you need on `Dash`: `overlay-placement`, `telltale-order`, `overlay-style`, `alert-position`, and `lock-style`. Import the types from `vehicle.slint`.
+3. Set `contract: 6` in `theme.json` for any of these.
+4. Keep the reserved strip for your placement plain, and keep your controls clear of it.
+5. Preview each placement: `sim themes/<id> --placement left --screenshot out.png --at 20`. Check the alert with `--alert 1` to `--alert 6`, and the lock screen with `--state locked`, `--state locked-error`, and `--state cooldown`.
+6. Check that every telltale still shows and that no alert is covered. If one is hidden, stop and report it.
+7. Check that `sim` did not log a contrast fallback under `OlaDash`. If it did, pick colours that pass 4.5:1.
+
+## 9. Add a trunk key
+
+The trunk key is the only vehicle request a theme may make. Follow `safety.md` rule 4 exactly.
+
+1. Declare `contract: 6` in `theme.json`.
+2. Show the key enabled only when parked, stopped, and `Vehicle.trunk-open` is false. Gate the `TouchArea` on the same condition.
+3. Call `Actions.open-trunk()` on click. Nothing else. Do not add a retry, a timer, or a second request.
+4. Show nothing that suggests the trunk is opening. The host does not report a result.
+5. Preview with `sim themes/<id> --state trunk` (latch open) and `--state park`.
+6. On a real scooter (owner's approval only), the calls log shows `trunk request: sent` or `trunk request: refused <reason>`. Report what you saw. If the key does nothing, check that log line before you change the theme.
+
+## 10. Report the outcome
 
 Every recipe ends with a short report: what was done, the commit you used, the commands you ran and their result, what you checked on a device or in sim, and what you did not check.

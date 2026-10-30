@@ -17,7 +17,7 @@ It packages what two public projects have learned:
 - **Ride-log and CAN analysis tools** that read captures and explain them, with confidence labels.
 - **Contract extensions**, following the SDK's additive rules.
 
-Everything is display-only. The skill refuses code that starts, moves, unlocks, or controls a vehicle, transmits CAN frames by default, or touches updates. See `skills/ola-scooter-dev/references/safety.md`.
+Display-only, with one exception the SDK defines: a theme may ask the host to open the trunk (`Actions.open-trunk()`), and the host sends the stock command only when the scooter is unlocked, in Park, stopped, and the latch is known closed. The skill refuses code that adds any other vehicle command, bypasses that gate, starts, moves, unlocks, or controls a vehicle, transmits CAN frames by default, or touches updates. See `skills/ola-scooter-dev/references/safety.md`.
 
 ## Install
 
@@ -124,8 +124,8 @@ sh -n install.sh                                # installer syntax
 
 | Upstream | Commit | Licence | Version |
 |---|---|---|---|
-| Ola Dash SDK | `7e3f339b2cde5ccc7adbb3061edf5e0924991e10` | GPL-3.0-or-later | 0.1 experimental, contract v5, plugin API v1 |
-| Ola CAN Reference | `7b13d086380cb7bb17be670642e26dd6853ee7ea` | MIT | profile `gen1-hvdp-5.0.0` |
+| Ola Dash SDK | `65e2ba8e51f049eb8cb992f9f439d66b830dbff8` | GPL-3.0-or-later | 0.1 experimental, contract v6, plugin API v1 |
+| Ola CAN Reference | `b73acee3b9d63f63e4d3303623ebd83b805806c7` | MIT | profile `gen1-hvdp-5.0.0` |
 
 The pins live in `skills/ola-scooter-dev/upstream.json`.
 
