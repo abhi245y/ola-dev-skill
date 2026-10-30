@@ -1,6 +1,6 @@
 {
   "skill": "ola-scooter-dev",
-  "skill_version": "0.1.0",
+  "skill_version": "0.1.1",
   "pinned_on": "2026-10-30",
   "upstreams": {
     "ola-dash-sdk": {
@@ -13,11 +13,13 @@
     },
     "ola-can-reference": {
       "url": "https://github.com/abhi245y/ola-can-reference.git",
-      "commit": "7b13d086380cb7bb17be670642e26dd6853ee7ea",
+      "commit": "f126904397bc876c3ad92a6dbcbc862bc4594787",
       "license": "MIT",
       "catalog": "catalog/gen1/hvdp-5.0.0.json",
       "catalog_profile": "gen1-hvdp-5.0.0",
-      "catalog_profiles": ["gen1-hvdp-5.0.0"]
+      "catalog_profiles": [
+        "gen1-hvdp-5.0.0"
+      ]
     }
   }
 }

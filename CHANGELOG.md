@@ -4,6 +4,12 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-30
+
+### Changed
+
+- CAN reference pin `7b13d08` -> `f126904`.
+
 ## [0.1.0] - 2026-10-30
 
 ### Added
