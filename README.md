@@ -124,7 +124,7 @@ sh -n install.sh                                # installer syntax
 
 | Upstream | Commit | Licence | Version |
 |---|---|---|---|
-| Ola Dash SDK | `65e2ba8e51f049eb8cb992f9f439d66b830dbff8` | GPL-3.0-or-later | 0.1 experimental, contract v6, plugin API v1 |
+| Ola Dash SDK | `6ec26558de87bb24d2188944db944a6bd3b8951d` | GPL-3.0-or-later | 0.1 experimental, contract v7, plugin API v1 |
 | Ola CAN Reference | `b73acee3b9d63f63e4d3303623ebd83b805806c7` | MIT | profile `gen1-hvdp-5.0.0` |
 
 The pins live in `skills/ola-scooter-dev/upstream.json`.
