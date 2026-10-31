@@ -4,12 +4,19 @@ Each entry gives the symptom, the cause, and the fix. Entries marked *unverified
 
 ## Preview and themes
 
-- **The theme shows nothing, or the host falls back to the default theme.** The theme failed to compile. Check the logcat tag `OlaDash` for the diagnostic. Then run `sim --check themes/<id>` to reproduce it on the desktop.
-- **`sim` shows no values.** The entry file does not re-export the globals. Add `export { Vehicle, Media, Actions, DriveMode }` (plus any others you use).
+- **The theme shows nothing, or the host falls back to the default theme.** Check for a compile or import-guard failure under logcat tag `OlaDash`. Run `sim --check themes/<id>` to reproduce it on the desktop.
+- **`sim` shows no values.** Keep `export component Dash inherits Window` and use the pinned sim. It wraps `Dash` and re-exports contract globals; the theme need not re-export them (`host/src/theme_root.rs` `ROOT`, `sim/src/main.rs` `load` upstream).
 - **The host rejects a theme.** Check `theme.json`: `id` must equal the folder name, `contract` must not exceed the host's contract version, and `entry` must be a relative path inside the folder with no `..`.
+- **`import guard: ...`.** Imports may reach only the theme folder and contract. Remove symlinks and banned source words, even in comments. Keep font imports inside the theme folder; no absolute font paths or `..` segments. Fonts named `OlaDash Host` or over 16 MiB are refused. Full list: `themes.md`.
+- **A theme compiles but keeps crashing at start.** After two crashing starts, the bad-theme guard selects `default` on the third start and lists the theme in `files/themes/bad`. Strikes live in `files/themes/strikes`. Start-up wiring still needs a manual device test (`docs/architecture.md`, `docs/testing.md` upstream).
+- **My theme font does not change host text.** Expected. Telltales, alerts and lock-screen text use the host font `OlaDash Host`. Lock-screen `sans` uses it too. Do not ship a font with that name.
+- **Writing `Vehicle.*` does not change the overlay.** Expected. The overlay and lock screen read host-owned `HostState` copies. Those writes only break the theme's own drawing. Do not write contract inputs or import host UI.
+- **A high `z` does not cover the overlay.** Expected. The host wrapper keeps `Dash` below it. Do not work around this rule.
 - **Overlay or lock colours are not the ones I set.** The host checks contrast (4.5:1 for the strip and keypad text, 3:1 for accents) and falls back to its own colours. It logs the rejection under `OlaDash`. `sim` prints it to stderr. Pick colours that pass.
 - **Telltales are in the wrong place.** Check `overlay-placement` in the theme and the `--placement` you previewed with. The host clamps placement to the screen, and it does not let a theme hide the strip.
 - **The trunk key does nothing.** That is expected when a host guard refuses. Check the calls log for `trunk request: refused <reason>` (the reasons in `TrunkGate.refusal` are `test mode`, `repeat within 3 s`, `no commander`, `scooter not unlocked`, `not in park`, `speed not reported`, `moving`, `trunk state not reported`, and `already open`). A theme cannot override the gate. Do not add a retry loop.
+- **Apps or themes keys do nothing.** `Actions.open-apps()` and `Actions.open-themes()` need contract 7. The contract says they are ignored unless parked. At the pin they only log calls; host screens are not wired yet. Host screens and app launches need `HostState.parked`; its readers are not wired yet (`docs/contract.md`, `CHANGELOG.md` Unreleased upstream).
+- **Night colours never appear on the device.** The host does not set `Display.night` yet. Use contract 7 and `sim --night` to preview a theme that reads it (`docs/contract.md` upstream).
 - **Path shape is squashed or offset.** `Path` scales to its bounding box. Set `viewbox-width` and `viewbox-height` to the element's size.
 - **A rotated element does not rotate.** `transform-rotation` is ignored by the renderer. Build the shape with rotated coordinates.
 - **A glow or shadow is missing.** `drop-shadow-*` is not drawn. Use a radial gradient or a wide translucent stroke.
@@ -35,7 +42,7 @@ Each entry gives the symptom, the cause, and the fix. Entries marked *unverified
 - **More than one device attached.** Set `ADB_SERIAL` for the SDK scripts, or pass `-s` to adb.
 - **The stock HMI came back after a reboot.** The swap is a development step. Run `hmi-swap.sh dash` again, or reinstall. Do not leave the stock HMI disabled without telling the owner.
 - **`hmi-swap.sh` says permission denied.** It needs a root adb session.
-- **The dash shows stale values.** Check the calls log for the callback. If the callback is absent, it is a parser or bus question, not a theme question.
+- **The dash shows stale values or NO DATA.** Parser loss, or no real vehicle callback for 5 s while in drive, sets `Vehicle.data-stale` and the host's red NO DATA badge. Values keep their last state. Check the calls log. Callbacks resuming or parser resubscription clear it. TEST DATA hides the badge, and injected events do not refresh real data (`CHANGELOG.md` Unreleased upstream).
 
 ## Logs
 

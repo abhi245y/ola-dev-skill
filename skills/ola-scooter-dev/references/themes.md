@@ -24,7 +24,7 @@ A theme is a folder with `main.slint` (the entry) and `theme.json` (the manifest
 | `version` | Required. For example `0.1.0`. |
 | `author` | Required. |
 | `license` | Required. SPDX identifier. The bundled themes are `GPL-3.0-or-later`. Your theme may use any licence you choose, but it must be compatible with the fonts and any SDK code you copy. |
-| `contract` | Required. Integer, at least 1, at most the SDK's `contract-version` (6 at the pin). Declare the lowest you need: `5` if you use no v6 feature, `6` if you use `Actions.open-trunk()`, `Vehicle.trunk-open`, any optional v6 `Dash` property (`overlay-placement`, `telltale-order`, `overlay-style`, `alert-position`, `lock-style`). |
+| `contract` | Required. Integer, at least 1, at most the SDK's `contract-version` (7 at the pin). Declare the lowest you need: `5` if you use no newer feature, `6` for `Actions.open-trunk()`, `Vehicle.trunk-open`, or optional v6 `Dash` properties (`overlay-placement`, `telltale-order`, `overlay-style`, `alert-position`, `lock-style`). Use `7` for `Display.night`, `Vehicle.data-stale`, `Actions.open-apps()` or `Actions.open-themes()`. |
 | `entry` | Required. Relative path inside the folder, no `..`, must exist. |
 | `description` | Required. One sentence. |
 
@@ -45,9 +45,27 @@ export component Dash inherits Window {
 
 - The root is exported as `Dash`, sized 1280 x 768 logical px in landscape.
 - **Keep `inherits Window`.** The bundled themes and `host/README.md` both use it, and the host embeds the theme in its own root window. Follow the bundled themes.
-- **Re-export the globals you use.** `sim` sets values on the root instance, so the exports must be present. The host re-exports on its own, but keep the line.
+- **Globals are re-exported by the wrapper.** The host and `sim` wrap `Dash` in the same host root. A theme need only export `Dash`; keeping its own global exports is harmless (`docs/contract.md` "Re-exporting globals"; `host/src/theme_root.rs` `ROOT` and `sim/src/main.rs` `load` upstream).
 - **Import the contract as `"vehicle.slint"`.** The host and `sim` put the contract directory on the include path, so do not copy it into your theme. For a standalone compile, use `slint-compiler -I <contract-dir>`.
 - Use the contract's globals only. Do not write to `in` properties.
+
+## Import guard and host state
+
+The guard allows imports only from the theme's own folder and `contract/`. No symlinks. Do not import `host/ui/*.slint`. These words are refused anywhere in theme source, including comments: `PopupWindow`, `Tooltip`, `ContextMenuArea`, `MenuBar`, `DragArea`, `std-widgets.slint`.
+
+Font imports must stay inside the theme folder. Absolute font paths and paths with a `..` segment are refused. Theme fonts (`.ttf`, `.otf`, `.ttc`, in any subfolder) may not contain the host family name `OlaDash Host`. Font files over 16 MiB are refused. `sim --check` prints `import guard: ...` for a refusal; the device falls back to the bundled theme.
+
+The host wraps `Dash`, so a theme's own `z` stays below the overlay. The overlay and lock screen read host-owned `HostState` copies of telltales, clock, battery and stale state. Writing `Vehicle.*` changes only the theme's own drawing. It cannot change those host values. Host text uses the host font, `OlaDash Host`; the theme's `default-font-family` affects only its own text.
+
+`tools/check-themes.sh` also checks `tools/fixtures/refused/` and `tools/fixtures/loads/`. Refused fixtures must fail in the import guard. Loads fixtures must load with the overlay and lock screen intact, including a lit left indicator. The script also checks the NO DATA badge with `--stale` (`tools/check-themes.sh` upstream).
+
+## Display and stale data (v7)
+
+- `Display.night` is false by default. Themes may use it for a night palette or ignore it. The host does not set it yet. Preview with `sim --night`.
+- `Vehicle.data-stale` is true when the parser is gone, or no real vehicle data callback arrived for 5 s while in drive. Other values retain the last known state. It clears when callbacks resume or the parser resubscribes. Injected test events do not count.
+- The host draws a red NO DATA badge in the TEST DATA slot. It is hidden while TEST DATA shows. Themes may add a hint or ignore `Vehicle.data-stale`. Preview with `sim --stale`.
+
+These additions are compatible with v6 themes, which load unchanged (`docs/contract.md`, `CHANGELOG.md` Unreleased upstream).
 
 ## Overlay placement and the reserved strip (v6)
 
@@ -109,6 +127,7 @@ export component Dash inherits Window {
 - **The host keeps** the keypad, its key order and labels, all copy, the passcode cells and their count, attempts, cooldown, and error text, and the phase logic. A theme gets no callback, no text, and no layout here, and cannot read the digits entered.
 - **Contrast is checked on load.** A failing pair falls back to host colours and is logged. The keys have a fixed minimum size, so a theme cannot shrink them.
 - `key-shape` is `rounded`, `square`, or `grid`. `digits` is `sans` or `segment`. Unknown values fall back to the host default.
+- `sans` uses the host font, `OlaDash Host`. `segment` uses the host's seven-segment shapes for digits and clock.
 - Preview with `sim --state locked`, `locked-error`, or `cooldown`.
 - Themes with no `lock-style` show the host default look, a good starting point for a plain screen.
 
@@ -122,7 +141,9 @@ export component Dash inherits Window {
 
 ## Callbacks allowed
 
-`Media.play-pause()`, `Media.next()`, `Media.previous()`, `Actions.open-android-auto()`, `Actions.open-settings()`, `Actions.open-trunk()` (v6, host-gated, see `safety.md` rule 4), and `Plugins.widget-clicked(id)`. Nothing else. Never add a callback that can change vehicle state.
+`Media.play-pause()`, `Media.next()`, `Media.previous()`, `Actions.open-android-auto()`, `Actions.open-settings()`, `Actions.open-trunk()` (v6, host-gated, see `safety.md` rule 4), `Actions.open-apps()` and `Actions.open-themes()` (v7), and `Plugins.widget-clicked(id)`. Nothing else. Never add a callback that can change vehicle state.
+
+The v7 apps and themes callbacks ask for host screens. The contract says the host ignores them unless parked. At this pin they only log the call; the screens are not wired yet. Host screens and app launches must use the host-owned `HostState.parked` gate. It means unlocked, in Park and stopped, or unlocked and charging; never in test mode. Charging does not require a speed value. The gate is pushed to the host but has no reader yet. It is not a theme API (`TrunkGate.java`, `CHANGELOG.md` Unreleased upstream).
 
 **Trunk key pattern.** Show the key as enabled only when the host could accept it: parked, stopped, and `Vehicle.trunk-open` false. Gate the `TouchArea` on that same condition. The host checks again (unlocked, Park, integer speed 0, latch known closed, 3 s between requests), and the theme gets no result, so show nothing that suggests the trunk is opening. The reference themes gate on `Vehicle.state == VehicleState.park && Vehicle.speed-kmh == 0 && !Vehicle.trunk-open`, matching the host; copy that condition. Do not add retries.
 
@@ -190,6 +211,8 @@ Checked in the software renderer that `sim` uses. The device uses a GL renderer 
 | `--alert 1..6` | Holds one host alert. Code 3 is the side-stand card. |
 | `--plugins` | Feeds three mock plugin widgets. |
 | `--nav` | Feeds an active navigation card. |
+| `--night` | Sets `Display.night` (v7). |
+| `--stale` | Sets `Vehicle.data-stale` (v7) and shows the host NO DATA badge. |
 | `--placement top\|bottom\|left\|right` | Previews another overlay placement. |
 | `--contract <dir>` | Uses another contract folder. |
 

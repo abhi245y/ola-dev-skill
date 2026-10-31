@@ -22,7 +22,9 @@ Unlock code must call the stock profile service with the owner's existing passco
 
 ## 4. Display-only themes and plugins, with one host-gated request
 
-Themes and plugins are display-only. The only callbacks themes may use are `Media.play-pause`, `Media.next`, `Media.previous`, `Actions.open-android-auto`, `Actions.open-settings`, `Actions.open-trunk`, and `Plugins.widget-clicked`. A plugin may hear `onAction` only for its own widgets and for media. Plugins have no method that reaches the vehicle.
+Themes and plugins are display-only. The only callbacks themes may use are `Media.play-pause`, `Media.next`, `Media.previous`, `Actions.open-android-auto`, `Actions.open-settings`, `Actions.open-trunk`, `Actions.open-apps`, `Actions.open-themes`, and `Plugins.widget-clicked`. A plugin may hear `onAction` only for its own widgets and for media. Plugins have no method that reaches the vehicle.
+
+`Actions.open-apps()` and `Actions.open-themes()` are v7 additions. The contract says the host ignores them unless parked. At the pin, they only log calls; the host screens are not wired yet (`docs/contract.md`, `CHANGELOG.md` Unreleased upstream).
 
 `Actions.open-trunk()` is the one vehicle request a theme can make. It is defined by the contract (`contract/vehicle.slint`, v6) and gated by the host. The host sends the stock seat command (`Seat_Unlock_Cmd`) once, and only when all of these hold, using real values and never test data:
 
@@ -53,6 +55,12 @@ Telltales, alerts, and the unlock screen belong to the host and are painted abov
 Contract v6 lets a theme choose the strip's placement (`overlay-placement`), telltale order, strip style, and alert position. The host enforces everything else: the strip is always drawn, telltales stay on it, minimum icon and text sizes apply, contrast below 4.5:1 falls back to host colours, and placement is clamped to the screen. The lock screen is styled, not handled: a theme may set `lock-style` (colours, key shape, digit drawing) and nothing about the keypad's keys, labels, or logic.
 
 A theme must keep the reserved strip for its declared placement plain (top or bottom 48 px, or left or right 72 px). See `themes.md`.
+
+The import guard allows only the theme's own folder and the contract. No symlinks. `PopupWindow`, `Tooltip`, `ContextMenuArea`, `MenuBar`, `DragArea` and `std-widgets.slint` are refused anywhere in theme source, including comments. Font imports must stay in the theme folder. Fonts may not use the host family name `OlaDash Host`; font files over 16 MiB are refused. See `themes.md` for path rules (`docs/themes.md` upstream).
+
+The host wraps `Dash`, so its own `z` cannot lift it above the overlay. The overlay and lock screen read `HostState` copies, not `Vehicle.*`. Writing `Vehicle.*` only changes the theme's own drawing. Host text uses `OlaDash Host`, including lock-screen `sans` digits. A theme cannot replace that font (`docs/safety.md`, `host/src/theme_root.rs` upstream).
+
+The host shows a red NO DATA badge when the parser is gone or no real vehicle data callback arrived for 5 s while in drive. It uses the TEST DATA slot and is hidden while TEST DATA shows. `Vehicle.data-stale` (v7) lets themes add a hint, but the host badge reads its own copy (`docs/safety.md`, `docs/contract.md` upstream).
 
 If a change would hide or obscure the overlay, or lets a theme or plugin reach the keypad, stop and report it. The SDK treats that as a critical bug.
 
@@ -88,7 +96,7 @@ Do not publish logs or screenshots that contain passcodes, account identifiers, 
 
 ## 11. Glanceable while riding
 
-The dash is for information only while moving. Do not design menus, text entry, pairing, settings, or media browsing that the rider must use while moving. Keep text short and large. Put setup behind a stopped state.
+The dash is for information only while moving. Do not design menus, text entry, pairing, settings, or media browsing that the rider must use while moving. Keep text short and large. Host screens and app launches need the host-owned `HostState.parked` gate: unlocked and in Park at speed 0, or unlocked and charging; never test mode. Charging needs no speed value. At the pin the gate is pushed but nothing reads it yet. Do not claim launches are already gated (`TrunkGate.java`, `CHANGELOG.md` Unreleased upstream).
 
 ## Reporting a safety problem
 

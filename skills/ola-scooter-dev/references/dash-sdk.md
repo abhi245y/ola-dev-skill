@@ -14,7 +14,7 @@ VehicleBridge.java      keep-alive, session logs, debug test channel,
    v
 Rust host (liboladash.so, Slint runtime)
    |- theme loader        themes/<id>/main.slint, loaded at runtime
-   |- contract globals    Vehicle, Battery, Ride, Media, Navigation, Plugins, Actions
+   |- contract globals    Vehicle, Display, Battery, Ride, Media, Navigation, Plugins, Actions
    |- safety overlay      host/ui/overlay.slint (+ src/theme_root.rs), painted above every theme
    |- lock screen         host-drawn keypad; the theme supplies only lock-style
    '- plugin data         JSON snapshot from PluginHost
@@ -23,8 +23,14 @@ Rust host (liboladash.so, Slint runtime)
 ```
 
 - The host writes the contract's `in` properties. Themes read them and never assign them.
+- Contract v7 adds `Display.night`, `Vehicle.data-stale`, `Actions.open-apps()` and `Actions.open-themes()`. v6 themes still load. The host does not set `Display.night` yet. The new callbacks only log; their host screens are not wired yet (`docs/contract.md`, `CHANGELOG.md` Unreleased upstream).
+- The import guard restricts themes to their own folder and the contract. It refuses symlinks, popup-related source words and unsafe fonts. See `themes.md` for the full rules. The host wraps `Dash` so its own `z` stays below the overlay.
+- The overlay and lock screen read host-owned `HostState` copies. A theme writing `Vehicle.*` changes only its own drawing. Host text uses `OlaDash Host`, not the theme font.
 - Theme callbacks come back to the host, which decides what they do.
 - **Theme load tiers:** the active theme, then the bundled fallback (a copy of `themes/default`), then a last-resort placeholder. A failed compile is logged under the logcat tag `OlaDash`. The app does not crash.
+- **Bad-theme guard:** start strikes are recorded in `files/themes/strikes`. After two crashing starts, the third start selects `default` and lists the theme in `files/themes/bad`. A strike clears after 10 s, on pause or on a clean exit. The theme switch must call `BadThemeGuard.cleanExit()` before `exit(0)`; that switch is not wired yet. Start-up wiring still needs a manual device test (`docs/architecture.md`, `docs/testing.md`, `CHANGELOG.md` Unreleased upstream).
+- **Parked gate:** `TrunkGate.parked` is pushed to `HostState.parked` for host screens and app launches. It requires unlocked and parked at speed 0, or unlocked and charging; never test mode. Charging needs no speed value. No reader is wired yet. `HostState` is host-owned, not a theme API (`TrunkGate.java`, `CHANGELOG.md` Unreleased upstream).
+- **Stale data:** parser loss, or no real vehicle callback for 5 s while in drive, sets `Vehicle.data-stale` and `HostState.data-stale`. Last values remain. Callbacks resuming or parser resubscription clear it. The host shows a red NO DATA badge in the TEST DATA slot, hidden while TEST DATA shows. Injected events do not refresh real data (`CHANGELOG.md` Unreleased upstream).
 - **Keep-alive:** a one-second tick, the same cadence as the stock `WakeLockNotifier`. The reason is `touch`, `media`, or `none`. Media counts only when the built-in source is playing in PARK or while charging, as the stock HMI does. A plugin's `publishMedia` never counts.
 - The unlock path runs on a separate worker, so it cannot block the keep-alive.
 
@@ -71,7 +77,7 @@ cargo run --release --manifest-path sim/Cargo.toml -- themes/default
 mkdir -p sim/out
 cargo run --release --manifest-path sim/Cargo.toml -- themes/default --screenshot sim/out/default-t75.png --at 75
 
-# Validate every bundled theme (manifest and full compile)
+# Validate bundled themes and safety fixtures
 tools/check-themes.sh
 ```
 
@@ -79,6 +85,8 @@ tools/check-themes.sh
 - Hold one state with `--state ride|park|charge|reverse|trunk|easy-park`, or the lock screen with `--state locked|locked-error|cooldown`. Hold one alert with `--alert 1..6`, and preview placement with `--placement top|bottom|left|right`.
 - `sim` looks for the contract at `<theme>/../../contract`. Override with `--contract <dir>`.
 - `--plugins` feeds mock plugin widgets and `--nav` feeds a navigation card. `SIM_PLUGINS=1` is the older spelling of both.
+- `--night` sets `Display.night`. `--stale` sets `Vehicle.data-stale` and shows the host NO DATA badge.
+- `tools/check-themes.sh` requires `tools/fixtures/refused/` to fail in the import guard and `tools/fixtures/loads/` to load with the overlay intact. It probes the lock screen, a lit left indicator and the NO DATA badge (`tools/check-themes.sh` upstream).
 - Full list: `themes.md`, "Previewing".
 
 ## Logs

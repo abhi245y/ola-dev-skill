@@ -1,6 +1,6 @@
 ---
 name: ola-scooter-dev
-description: Build themes, widget plugins, and read-only analysis tools for the Ola S1 Pro Gen 1 electric scooter dash (Ola Dash SDK, Slint themes, plugin API v1, vehicle data contract, CAN reference). Use for Ola, S1, S1 Pro, scooter, dash, Slint theme, dash plugin, head unit, vehicle data, CAN bus, ride log, or sim preview requests. Display-only by design: refuses to write code that commands the vehicle.
+description: 'Build themes, widget plugins, and read-only analysis tools for the Ola S1 Pro Gen 1 electric scooter dash (Ola Dash SDK, Slint themes, plugin API v1, vehicle data contract, CAN reference). Use for Ola, S1, S1 Pro, scooter, dash, Slint theme, dash plugin, head unit, vehicle data, CAN bus, ride log, or sim preview requests. Display-only by design: refuses to write code that commands the vehicle.'
 ---
 
 # Ola scooter development
@@ -10,7 +10,7 @@ Orientation for building on the Ola S1 Pro Gen 1 dash. This is an unofficial com
 ## Scope and pins
 
 - **Generation:** Gen 1 (S1 Pro Gen 1) only. Gen 2 and other models are unknown. Say so instead of guessing.
-- **Pins:** `upstream.json` in this folder. Dash SDK 0.1 (experimental, no stability guarantee), theme contract v6, plugin API v1, CAN profile `gen1-hvdp-5.0.0`. A theme that uses no v6 feature may declare `contract: 5`.
+- **Pins:** `upstream.json` in this folder. Dash SDK 0.1 (experimental, no stability guarantee), theme contract v7, plugin API v1, CAN profile `gen1-hvdp-5.0.0`. v6 themes load unchanged. Declare the lowest contract needed; v7 adds `Display.night`, `Vehicle.data-stale`, `Actions.open-apps()` and `Actions.open-themes()`.
 - **Traceability:** every fact in `references/` comes from the pinned SDK or CAN repo. Anything that cannot be traced is marked unverified. Keep it that way.
 - **Upstream is read-only for you.** If you find a doc error or a gap, report it. Do not edit the upstream repos.
 
@@ -26,7 +26,7 @@ Orientation for building on the Ola S1 Pro Gen 1 dash. This is an unofficial com
 8. **Keep-alive follows the stock rule** (touch-driven, plus the stock media exception). Never hold the vehicle awake indefinitely.
 9. **Test data is marked on screen and off by default.** Show a TEST DATA banner. Never ship a test channel or a debuggable build as a release.
 10. **Clean-room only.** Do not copy or redistribute Ola's code, assets, keys, passcodes, or decompiled sources. Use the clean-room interface in `sdk/vehicle-interface` as the SDK does.
-11. **Glanceable UI while riding.** No menus, text entry, pairing, or settings while moving.
+11. **Glanceable UI while riding.** No menus, text entry, pairing, or settings while moving. Host screens and app launches need `HostState.parked`. At the pin, this gate has no reader yet; do not claim launches are already gated. See `references/safety.md`.
 
 Full rationale: `references/safety.md`.
 
@@ -53,7 +53,7 @@ Full rationale: `references/safety.md`.
 1. Run `scripts/fetch-upstream.sh`. It clones both upstream repos at the pinned commits into a cache directory. Use `--latest` only when the user asks for it, and say that you did.
 2. Read the reference for the task. Check that the commit you cite matches `upstream.json`.
 3. Start from a template. Keep the code display-only and inside the contract.
-4. Preview before the device: `sim` renders a theme headlessly with mock data. Run the SDK's `tools/check-themes.sh`.
+4. Preview before the device: `sim` renders a theme headlessly with mock data. Run the SDK's `tools/check-themes.sh`, which also runs refused/loads safety fixtures.
 5. In the final report, separate what you verified (rendered, compiled, unit-tested, or seen on a real scooter) from what you did not verify.
 
 ## Facts that are often wrong
@@ -69,6 +69,11 @@ Full rationale: `references/safety.md`.
 - **The trunk key is gated by the host, not by the theme.** Reference themes enable their key with the host's own conditions (`state == park`, `speed-kmh == 0`, trunk closed), but the host checks again and the latch state can be unknown, so an enabled-looking key can still be refused. The host logs `trunk request: refused <reason>`. See `references/safety.md`.
 - **`trunk-open` is read-only.** It is true while the seat latch is open. It closes when the seat is pressed down. A theme cannot close it.
 - **Lock-screen and overlay styling are data only.** `lock-style` and the overlay properties carry colours and placement. The host keeps the keypad, every key press, all copy, and every warning.
+- **Theme imports are guarded.** Only the theme folder and contract are allowed. No symlinks. `PopupWindow`, `Tooltip`, `ContextMenuArea`, `MenuBar`, `DragArea` and `std-widgets.slint` are refused even in comments. Font imports stay inside the theme folder. Fonts using `OlaDash Host` or font files over 16 MiB are refused. Full rules: `references/themes.md`.
+- **The host wrapper keeps `Dash.z` below the overlay.** The overlay and lock screen read `HostState` copies. Writing `Vehicle.*` only changes the theme's own drawing. Host text, including lock-screen `sans` digits, uses the host font `OlaDash Host`.
+- **v7 has unfinished wiring.** The host does not set `Display.night` yet. `Actions.open-apps()` and `Actions.open-themes()` only log calls; the contract says they are ignored unless parked. Host screens are not wired yet. See `references/themes.md`.
+- **Stale data gets a host badge.** `Vehicle.data-stale` means parser loss or no real vehicle callback for 5 s while in drive. The host shows red NO DATA, hidden while TEST DATA shows. Themes may add a hint or ignore the field. Preview with `--stale`; preview night palettes with `--night`.
+- **Crashing themes have a fallback.** After two crashing starts, the bad-theme guard selects `default` on the third start. See `references/dash-sdk.md` for strike files and the device-test limit.
 
 ## Pointers
 
@@ -82,6 +87,6 @@ Full rationale: `references/safety.md`.
 - `references/recipes.md`: step-by-step recipes
 - `references/safety.md`: hard rules with rationale
 - `references/troubleshooting.md`: known pitfalls
-- `templates/theme/`: starter theme (compiles against contract v6, declares `contract: 5`)
+- `templates/theme/`: starter theme (compiles against contract v7, declares `contract: 5`)
 - `templates/plugin/`: minimal widget plugin
 - `scripts/fetch-upstream.sh`: clone the pinned upstream repos
