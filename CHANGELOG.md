@@ -4,8 +4,11 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-31
+
 ### Changed
 
+- Dash SDK pin `6ec2655` -> `ffa8416`.
 - Updated skill guidance for pinned Dash SDK contract v7: `Display.night`, `Vehicle.data-stale`, apps and themes callbacks, and their current wiring limits. Starter theme still declares contract 5 (it uses only v5 fields).
 - Documented the theme import and font guards, the `Dash` wrapper, host-state copies and host font, NO DATA badge, parked gate, bad-theme fallback, and refused/loads safety fixtures.
 
