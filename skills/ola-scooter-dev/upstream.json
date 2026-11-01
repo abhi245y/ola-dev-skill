@@ -1,11 +1,11 @@
 {
   "skill": "ola-scooter-dev",
-  "skill_version": "0.2.4",
-  "pinned_on": "2026-10-31",
+  "skill_version": "0.2.5",
+  "pinned_on": "2026-11-01",
   "upstreams": {
     "ola-dash-sdk": {
       "url": "https://github.com/abhi245y/ola-dash-sdk.git",
-      "commit": "ffa8416b8e791cf50a834b1105670f4e41c8e06b",
+      "commit": "7820f702a4312903734a35fd870646bcfbf24a40",
       "license": "GPL-3.0-or-later",
       "contract_version": 7,
       "plugin_api_version": 1,
